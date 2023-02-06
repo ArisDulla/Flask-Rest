@@ -1,14 +1,67 @@
-import logging
-
+from .graph import MethodsGraph
 from .methodsMongoDb import MethodsCollection
+from .factoryBackgroundThread import BackgroundThreadFactory
+
+from flask import Flask, request, jsonify
 from datetime import datetime, timedelta
-from flask import Flask, request, abort
+import os
+import logging
+import signal
+
+logging.basicConfig(level=logging.INFO, force=True)
 
 app = Flask(__name__)
 
 mongoCollection = MethodsCollection()
 
+graph = MethodsGraph()
+
+graph.get_all_collections()
+
 date = "%Y-%m-%dT%X"
+#
+# STREAMS MONGODB
+#
+# Background Thread
+#
+thread = BackgroundThreadFactory.create(graph)
+# this condition is needed to prevent creating duplicated thread in Flask debug mode
+if not (app.debug or os.environ.get('FLASK_ENV') == 'development') or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+
+    for thread in thread:
+        thread.start()
+
+    original_handler = signal.getsignal(signal.SIGINT)
+
+
+    def sigint_handler(signum, frame):
+        thread.stop()
+
+        # wait until thread is finished
+        if thread.is_alive():
+            thread.join()
+
+        original_handler(signum, frame)
+
+
+    try:
+        signal.signal(signal.SIGINT, sigint_handler)
+    except ValueError as e:
+        logging.error(f'{e}. Continuing execution...')
+
+
+#
+# RECOMMEND ARTICLE
+#
+@app.route('/recommend', methods=['POST', 'GET'])
+def recommend():
+    id_rec = request.form.get("id")
+    if not id_rec:
+        return "msg Missing parameters"
+
+    article = graph.getArticle()
+
+    return article
 
 
 #

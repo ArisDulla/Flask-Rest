@@ -12,13 +12,18 @@ class MethodsCollection:
     # -------------------------------
     # CREATE NEW USER
     #
-    def join_in_table(self, keywords, city, email):
-        client = self.client
-        client = client.mongoClient
-        db = client["Collections"]
-        collection = db["users"]
+    def get_collection(self, name_topic):
 
-        print(db)
+        client = self.client.mongoClient
+        db = client["Collections"]
+        collection = db[name_topic]
+
+        return collection
+
+    def join_in_table(self, keywords, city, email):
+
+        collection = self.get_collection("users")
+
         new_user = {"info": {"_id": email, "keyword": keywords, "city": city,
                              "timestamp": datetime.now().strftime("%Y-%m-%dT%X")}}
 
@@ -38,10 +43,8 @@ class MethodsCollection:
     # GET ARTICLE
     #
     def get_articles(self, key):
-        client = self.client
-        client = client.mongoClient
-        db = client["Collections"]
-        wiki = db["wiki"]
+
+        wiki = self.get_collection("wiki")
 
         query = {"title": key}
 
@@ -66,10 +69,8 @@ class MethodsCollection:
     # UPDATE INFO USER
     #
     def make_changes(self, email, keyword):
-        client = self.client
-        client = client.mongoClient
-        db = client["Collections"]
-        collection = db["users"]
+
+        collection = self.get_collection("users")
 
         query = {"_id": email}
         new_value = {"$set": {"keyword": keyword}}
@@ -93,10 +94,8 @@ class MethodsCollection:
     # DELETE USER
     #
     def delete_user(self, email):
-        client = self.client
-        client = client.mongoClient
-        db = client["Collections"]
-        collection = db["users"]
+
+        collection = self.get_collection("users")
 
         query = {"_id": email}
 
